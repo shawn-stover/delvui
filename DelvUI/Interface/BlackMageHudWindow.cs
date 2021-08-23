@@ -1,11 +1,17 @@
 ﻿using System;
 using System.Numerics;
-using Dalamud.Game.ClientState.Structs.JobGauge;
 using Dalamud.Plugin;
 using ImGuiNET;
-using System.Linq;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using Dalamud.Data;
+using Dalamud.Game.ClientState;
+using Dalamud.Game.ClientState.JobGauge;
+using Dalamud.Game.ClientState.JobGauge.Types;
+using Dalamud.Game.ClientState.Objects;
+using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Game.Gui;
 
 namespace DelvUI.Interface
 {
@@ -45,7 +51,25 @@ namespace DelvUI.Interface
         private Dictionary<string, uint> ThundercloudColor => PluginConfiguration.JobColorMap[Jobs.BLM * 1000 + 7];
         private Dictionary<string, uint> DotColor => PluginConfiguration.JobColorMap[Jobs.BLM * 1000 + 8];
 
-        public BlackMageHudWindow(DalamudPluginInterface pluginInterface, PluginConfiguration pluginConfiguration) : base(pluginInterface, pluginConfiguration) { }
+        public BlackMageHudWindow(
+            ClientState clientState,
+            DalamudPluginInterface pluginInterface,
+            DataManager dataManager,
+            GameGui gameGui,
+            JobGauges jobGauges,
+            ObjectTable objectTable, 
+            PluginConfiguration pluginConfiguration,
+            TargetManager targetManager
+        ) : base(
+            clientState,
+            pluginInterface,
+            dataManager,
+            gameGui,
+            jobGauges,
+            objectTable,
+            pluginConfiguration,
+            targetManager
+        ) { }
 
         protected override void Draw(bool _)
         {
@@ -77,17 +101,16 @@ namespace DelvUI.Interface
 
         protected virtual void DrawManaBar()
         {
-            Debug.Assert(PluginInterface.ClientState.LocalPlayer != null, "PluginInterface.ClientState.LocalPlayer != null");
+            Debug.Assert(ClientState.LocalPlayer != null, "ClientState.LocalPlayer != null");
 
-            var gauge = PluginInterface.ClientState.JobGauges.Get<BLMGauge>();
-
-            var actor = PluginInterface.ClientState.LocalPlayer;
+            var gauge = JobGauges.Get<BLMGauge>();
+            var actor = ClientState.LocalPlayer;
             var scale = (float)actor.CurrentMp / actor.MaxMp;
             var barSize = new Vector2(ManaBarWidth, ManaBarHeight);
             var cursorPos = new Vector2(OriginX - barSize.X / 2, OriginY - ManaBarHeight);
 
             // mana bar
-            var color = gauge.InAstralFire() ? ManaBarFireColor : (gauge.InUmbralIce() ? ManaBarIceColor : ManaBarNoElementColor);
+            var color = gauge.InAstralFire ? ManaBarFireColor : gauge.InUmbralIce ? ManaBarIceColor : ManaBarNoElementColor;
 
             var drawList = ImGui.GetWindowDrawList();
             drawList.AddRectFilled(cursorPos, cursorPos + barSize, color["background"]);
@@ -99,7 +122,7 @@ namespace DelvUI.Interface
             drawList.AddRect(cursorPos, cursorPos + barSize, 0xFF000000);
 
             // threshold marker
-            if (ShowManaThresholdMarker && gauge.InAstralFire())
+            if (ShowManaThresholdMarker && gauge.InAstralFire)
             {
                 var position = new Vector2(OriginX - barSize.X / 2 + (ManaThresholdValue / 10000f) * barSize.X, cursorPos.Y + barSize.Y);
                 var size = new Vector2(3, barSize.Y);
@@ -110,7 +133,7 @@ namespace DelvUI.Interface
             }
 
             // element timer
-            if (gauge.InAstralFire() || gauge.InUmbralIce())
+            if (gauge.InAstralFire || gauge.InUmbralIce)
             {
                 var time = gauge.ElementTimeRemaining > 10 ? gauge.ElementTimeRemaining / 1000 + 1 : 0;
                 var text = $"{time,0}";
@@ -119,9 +142,8 @@ namespace DelvUI.Interface
             }
 
             // mana
-            if (ShowManaValue)
-            {
-                var mana = PluginInterface.ClientState.LocalPlayer.CurrentMp;
+            if (ShowManaValue) {
+                var mana = ClientState.LocalPlayer.CurrentMp;
                 var text = $"{mana,0}";
                 var textSize = ImGui.CalcTextSize(text);
                 DrawOutlinedText(text, new Vector2(OriginX - barSize.X / 2f + 2, OriginY - ManaBarHeight / 2f - textSize.Y / 2f));
@@ -130,11 +152,8 @@ namespace DelvUI.Interface
 
         protected virtual void DrawEnochian()
         {
-            Debug.Assert(PluginInterface.ClientState.LocalPlayer != null, "PluginInterface.ClientState.LocalPlayer != null");
-
-            var gauge = PluginInterface.ClientState.JobGauges.Get<BLMGauge>();
-            if (!gauge.IsEnoActive())
-            {
+            var gauge = JobGauges.Get<BLMGauge>();
+            if (!gauge.IsEnochianActive) {
                 return;
             }
 
@@ -147,9 +166,7 @@ namespace DelvUI.Interface
 
         protected virtual void DrawUmbralHeartStacks()
         {
-            Debug.Assert(PluginInterface.ClientState.LocalPlayer != null, "PluginInterface.ClientState.LocalPlayer != null");
-
-            var gauge = PluginInterface.ClientState.JobGauges.Get<BLMGauge>();
+            var gauge = JobGauges.Get<BLMGauge>();
 
             var barSize = new Vector2(UmbralHeartWidth, UmbralHeartHeight);
             var totalWidth = barSize.X * 3 + HorizontalSpaceBetweenBars * 2;
@@ -157,10 +174,9 @@ namespace DelvUI.Interface
 
             var drawList = ImGui.GetWindowDrawList();
 
-            for (int i = 1; i <= 3; i++)
-            {
+            for (var i = 1; i <= 3; i++) {
                 drawList.AddRectFilled(cursorPos, cursorPos + barSize, UmbralHeartColor["background"]);
-                if (gauge.NumUmbralHearts >= i)
+                if (gauge.UmbralHearts >= i)
                 {
                     drawList.AddRectFilledMultiColor(
                         cursorPos, cursorPos + new Vector2(barSize.X, barSize.Y),
@@ -175,38 +191,33 @@ namespace DelvUI.Interface
 
         protected virtual void DrawPolyglot()
         {
-            Debug.Assert(PluginInterface.ClientState.LocalPlayer != null, "PluginInterface.ClientState.LocalPlayer != null");
-
-            var gauge = PluginInterface.ClientState.JobGauges.Get<BLMGauge>();
+            var gauge = JobGauges.Get<BLMGauge>();
             var barSize = new Vector2(PolyglotWidth, PolyglotHeight);
-            var scale = gauge.NumPolyglotStacks == 2 ? 0 : (gauge.IsEnoActive() ? gauge.TimeUntilNextPolyglot / 30000f : 1);
+            var scale = gauge.PolyglotStacks == 2 ? 0 : (gauge.IsEnochianActive ? gauge.EnochianTimer / 30000f : 1);
             scale = 1 - scale;
 
             var y = OriginY - ManaBarHeight - VerticalSpaceBetweenBars - UmbralHeartHeight - VerticalSpaceBetweenBars - PolyglotHeight;
-            if (ShowTripleCast)
-            {
+            if (ShowTripleCast) {
                 y = y - VerticalSpaceBetweenBars - TripleCastHeight;
             }
-            var drawList = ImGui.GetWindowDrawList();
-
+            
             // 1st stack (charged)
             var cursorPos = new Vector2(OriginX - barSize.X - (HorizontalSpaceBetweenBars / 2f), y);
-            DrawPolyglotStack(cursorPos, barSize, gauge.NumPolyglotStacks == 0 ? scale : 1);
+            DrawPolyglotStack(cursorPos, barSize, gauge.PolyglotStacks == 0 ? scale : 1);
 
             // 2nd stack
-            cursorPos.X = OriginX + (HorizontalSpaceBetweenBars / 2f);
-            DrawPolyglotStack(cursorPos, barSize, gauge.NumPolyglotStacks >= 1 ? scale : 0);
+            cursorPos.X = CenterX + (HorizontalSpaceBetweenBars / 2f);
+            DrawPolyglotStack(cursorPos, barSize, gauge.PolyglotStacks >= 1 ? scale : 0);
         }
 
         private void DrawPolyglotStack(Vector2 position, Vector2 size, float scale)
         {
-            Debug.Assert(PluginInterface.ClientState.LocalPlayer != null, "PluginInterface.ClientState.LocalPlayer != null");
+            Debug.Assert(ClientState.LocalPlayer != null, "ClientState.LocalPlayer != null");
 
             var drawList = ImGui.GetWindowDrawList();
 
             // glow
-            if (scale == 1)
-            {
+            if (scale == 1) {
                 var glowPosition = new Vector2(position.X - 1, position.Y - 1);
                 var glowSize = new Vector2(size.X + 2, size.Y + 2);
                 drawList.AddRectFilled(glowPosition, glowPosition + glowSize, 0xAAFFFFFF);
@@ -216,14 +227,12 @@ namespace DelvUI.Interface
             drawList.AddRectFilled(position, position + size, PolyglotColor["background"]);
 
             // fill
-            if (scale == 1)
-            {
+            if (scale == 1) {
                 drawList.AddRectFilledMultiColor(position, position + size,
                     PolyglotColor["gradientLeft"], PolyglotColor["gradientRight"], PolyglotColor["gradientRight"], PolyglotColor["gradientLeft"]
                 );
             }
-            else if (scale > 0)
-            {
+            else if (scale > 0) {
                 var width = Math.Max(1, size.X * scale);
                 drawList.AddRectFilled(position, position + new Vector2(width, size.Y), PolyglotColor["gradientLeft"]);
             }
@@ -234,20 +243,18 @@ namespace DelvUI.Interface
 
         protected virtual void DrawTripleCast()
         {
-            Debug.Assert(PluginInterface.ClientState.LocalPlayer != null, "PluginInterface.ClientState.LocalPlayer != null");
-
-            var tripleStackBuff = PluginInterface.ClientState.LocalPlayer.StatusEffects.FirstOrDefault(o => o.EffectId == 1211);
-
+            Debug.Assert(ClientState.LocalPlayer != null, "ClientState.LocalPlayer != null");
+            var tripleStackBuff = ClientState.LocalPlayer.StatusList.FirstOrDefault(o => o.StatusId == 1211);
             var barSize = new Vector2(TripleCastWidth, TripleCastHeight);
             var totalWidth = barSize.X * 3 + HorizontalSpaceBetweenBars * 2;
             var cursorPos = new Vector2(OriginX - totalWidth / 2, OriginY - ManaBarHeight - VerticalSpaceBetweenBars - UmbralHeartHeight - VerticalSpaceBetweenBars - barSize.Y);
 
             var drawList = ImGui.GetWindowDrawList();
 
-            for (int i = 1; i <= 3; i++)
-            {
+            for (var i = 1; i <= 3; i++) {
                 drawList.AddRectFilled(cursorPos, cursorPos + barSize, TriplecastColor["background"]);
-                if (tripleStackBuff.StackCount >= i)
+                var stackCount = tripleStackBuff?.StackCount ?? 0;
+                if (stackCount >= i)
                 {
                     drawList.AddRectFilledMultiColor(
                         cursorPos, cursorPos + new Vector2(barSize.X, barSize.Y),
@@ -262,21 +269,20 @@ namespace DelvUI.Interface
 
         protected virtual void DrawProcs()
         {
-            Debug.Assert(PluginInterface.ClientState.LocalPlayer != null, "PluginInterface.ClientState.LocalPlayer != null");
+            Debug.Assert(ClientState.LocalPlayer != null, "ClientState.LocalPlayer != null");
+            var firestarter = ClientState.LocalPlayer.StatusList.FirstOrDefault(o => o.StatusId == 165);
+            var firestarterTimer = ShowFirestarterProcs ? Math.Abs(firestarter?.RemainingTime ?? 0f) : 0;
+            var thundercloud = ClientState.LocalPlayer.StatusList.FirstOrDefault(o => o.StatusId == 164);
+            var thundercloudTimer = ShowThundercloudProcs ? thundercloud?.RemainingTime ?? 0f : 0;
 
-            var firestarterTimer = ShowFirestarterProcs ? Math.Abs(PluginInterface.ClientState.LocalPlayer.StatusEffects.FirstOrDefault(o => o.EffectId == 165).Duration) : 0;
-            var thundercloudTimer = ShowThundercloudProcs ? Math.Abs(PluginInterface.ClientState.LocalPlayer.StatusEffects.FirstOrDefault(o => o.EffectId == 164).Duration) : 0;
-
-            if (firestarterTimer == 0 && thundercloudTimer == 0)
-            {
+            if (firestarterTimer == 0 && thundercloudTimer == 0) {
                 return;
             }
 
             var totalHeight = firestarterTimer > 0 && thundercloudTimer > 0 ? ProcsHeight * 2 + VerticalSpaceBetweenBars : ProcsHeight;
             var x = OriginX - HorizontalSpaceBetweenBars * 2f - PolyglotWidth;
             var y = OriginY - ManaBarHeight - VerticalSpaceBetweenBars - UmbralHeartHeight - VerticalSpaceBetweenBars - PolyglotHeight / 2f + ProcsHeight;
-            if (ShowTripleCast)
-            {
+            if (ShowTripleCast) {
                 y = y - VerticalSpaceBetweenBars - TripleCastHeight;
             }
 
@@ -289,8 +295,7 @@ namespace DelvUI.Interface
             }
 
             // thundercloud
-            if (thundercloudTimer > 0)
-            {
+            if (thundercloudTimer > 0) {
                 var position = new Vector2(x, firestarterTimer == 0 ? y - totalHeight / 2f : y + VerticalSpaceBetweenBars / 2f);
                 var scale = thundercloudTimer / 18f;
 
@@ -300,26 +305,23 @@ namespace DelvUI.Interface
 
         protected virtual void DrawDotTimer()
         {
-            Debug.Assert(PluginInterface.ClientState.LocalPlayer != null, "PluginInterface.ClientState.LocalPlayer != null");
-
-            var target = PluginInterface.ClientState.Targets.SoftTarget ?? PluginInterface.ClientState.Targets.CurrentTarget;
-            if (target is null)
-            {
+            var actor = TargetManager.SoftTarget ?? TargetManager.Target;
+            if (actor is not BattleChara target) {
                 return;
             }
 
             // thunder 1 to 4
-            int[] dotIDs = new int[] { 161, 162, 163, 1210 };
-            float[] dotDurations = new float[] { 12, 18, 24, 18 };
+            var dotIDs = new[] { 161, 162, 163, 1210 };
+            var dotDurations = new[] { 12f, 18f, 24f, 18f };
 
             float timer = 0;
             float maxDuration = 1;
 
-            for (int i = 0; i < 4; i++)
-            {
-                timer = target.StatusEffects.FirstOrDefault(o => o.EffectId == dotIDs[i]).Duration;
-                if (timer > 0)
-                {
+            for (var i = 0; i < 4; i++) {
+                var dot = target.StatusList.FirstOrDefault(o => o.StatusId == dotIDs[i]);
+                timer = dot?.RemainingTime ?? 0f;
+                
+                if (timer > 0) {
                     maxDuration = dotDurations[i];
                     break;
                 }
@@ -332,8 +334,7 @@ namespace DelvUI.Interface
 
             var x = OriginX + HorizontalSpaceBetweenBars * 2f + PolyglotWidth;
             var y = OriginY - ManaBarHeight - VerticalSpaceBetweenBars - UmbralHeartHeight - VerticalSpaceBetweenBars - PolyglotHeight / 2f - DotTimerHeight;
-            if (ShowTripleCast)
-            {
+            if (ShowTripleCast) {
                 y = y - VerticalSpaceBetweenBars - TripleCastHeight;
             }
 
@@ -345,7 +346,7 @@ namespace DelvUI.Interface
 
         private void DrawTimerBar(Vector2 position, float scale, float height, Dictionary<string, uint> colorMap, bool inverted)
         {
-            Debug.Assert(PluginInterface.ClientState.LocalPlayer != null, "PluginInterface.ClientState.LocalPlayer != null");
+            Debug.Assert(ClientState.LocalPlayer != null, "ClientState.LocalPlayer != null");
 
             var drawList = ImGui.GetWindowDrawList();
             var size = new Vector2((ManaBarWidth / 2f - PolyglotWidth - HorizontalSpaceBetweenBars * 2f) * scale, height);

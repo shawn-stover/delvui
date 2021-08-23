@@ -1,9 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;
-using Dalamud.Game.ClientState.Structs.JobGauge;
+using Dalamud.Data;
+using Dalamud.Game.ClientState;
+using Dalamud.Game.ClientState.JobGauge;
+using Dalamud.Game.ClientState.JobGauge.Types;
+using Dalamud.Game.ClientState.Objects;
+using Dalamud.Game.Gui;
 using Dalamud.Plugin;
 using ImGuiNET;
 
@@ -66,7 +72,25 @@ namespace DelvUI.Interface
         // TODO: Rook auto-turret differences?
         private readonly int[] _robotDuration = {12450, 13950, 15450, 16950, 18450, 19950};
         
-        public MachinistHudWindow(DalamudPluginInterface pluginInterface, PluginConfiguration pluginConfiguration) : base(pluginInterface, pluginConfiguration) { }
+        public MachinistHudWindow(
+            ClientState clientState,
+            DalamudPluginInterface pluginInterface,
+            DataManager dataManager,
+            GameGui gameGui,
+            JobGauges jobGauges,
+            ObjectTable objectTable, 
+            PluginConfiguration pluginConfiguration,
+            TargetManager targetManager
+        ) : base(
+            clientState,
+            pluginInterface,
+            dataManager,
+            gameGui,
+            jobGauges,
+            objectTable,
+            pluginConfiguration,
+            targetManager
+        ) { }
 
         protected override void Draw(bool _) {
             DrawHealthBar();
@@ -82,7 +106,7 @@ namespace DelvUI.Interface
 
         private int DrawHeatGauge(int initialHeight)
         {
-            var gauge = PluginInterface.ClientState.JobGauges.Get<MCHGauge>();
+            var gauge = JobGauges.Get<MCHGauge>();
             
             var barWidth = (HeatGaugeWidth - HeatGaugePadding) / 2;
             var xPos = CenterX - XOffset + HeatGaugeXOffset;
@@ -129,9 +153,9 @@ namespace DelvUI.Interface
 
         private int DrawBatteryGauge(int initialHeight)
         {
-            var gauge = PluginInterface.ClientState.JobGauges.Get<MCHGauge>();
-            var robotTimeLeft = gauge.RobotTimeRemaining;
-            var robotPercentLeft = gauge.LastRobotBatteryPower != 0 ? (float) robotTimeLeft / _robotDuration[gauge.LastRobotBatteryPower / 10 - 5] : 0f;
+            var gauge = JobGauges.Get<MCHGauge>();
+            var robotTimeLeft = gauge.SummonTimeRemaining;
+            var robotPercentLeft = gauge.LastSummonBatteryPower != 0 ? (float) robotTimeLeft / _robotDuration[gauge.LastSummonBatteryPower / 10 - 5] : 0f;
             
             var barWidth = (BatteryGaugeWidth - BatteryGaugePadding * 9f) / 10;
             var xPos = CenterX - XOffset + BatteryGaugeXOffset;
@@ -140,7 +164,7 @@ namespace DelvUI.Interface
             const int chunkSizeEnd = 10;
             const int chunkSizeStart = 50;
             var barSize = new Vector2(barWidth, BatteryGaugeHeight);
-            var batteryGaugeHeight = gauge.IsRobotActive() ? BatteryGaugeHeight / 2 : BatteryGaugeHeight;
+            var batteryGaugeHeight = gauge.IsRobotActive ? BatteryGaugeHeight / 2 : BatteryGaugeHeight;
             
             var drawList = ImGui.GetWindowDrawList();
 
@@ -169,7 +193,7 @@ namespace DelvUI.Interface
                     );
                 }
 
-                if (gauge.IsRobotActive())
+                if (gauge.IsRobotActive)
                 {
                     var robotScale = Math.Min(Math.Max((robotPercentLeft - (i - 1) / 10f) * 10f, 0), 1);
                     drawList.AddRectFilledMultiColor(
@@ -206,7 +230,7 @@ namespace DelvUI.Interface
                 );
             }
             
-            if (gauge.IsRobotActive())
+            if (gauge.IsRobotActive)
             {
                 var robotScale = Math.Max(Math.Min(robotPercentLeft, chunkSizeStart / 100f), 0);
                 drawList.AddRectFilledMultiColor(
@@ -214,7 +238,7 @@ namespace DelvUI.Interface
                     RobotColor["gradientLeft"], RobotColor["gradientRight"], RobotColor["gradientRight"], RobotColor["gradientLeft"]
                 );
                 
-                var durationText = Math.Round(gauge.RobotTimeRemaining / 1000f).ToString(CultureInfo.InvariantCulture);
+                var durationText = Math.Round(gauge.SummonTimeRemaining / 1000f).ToString(CultureInfo.InvariantCulture);
                 DrawOutlinedText(durationText, new Vector2(cursorPos.X + 5f, cursorPos.Y-2));
             }
             
@@ -225,8 +249,8 @@ namespace DelvUI.Interface
 
         private int DrawOverheatBar(int initialHeight)
         {
-            var gauge = PluginInterface.ClientState.JobGauges.Get<MCHGauge>();
-            var displayOverheat = gauge.IsOverheated();
+            var gauge = JobGauges.Get<MCHGauge>();
+            var displayOverheat = gauge.IsOverheated;
             
             var barWidth = OverheatWidth;
             var xPos = CenterX - XOffset;
@@ -259,7 +283,8 @@ namespace DelvUI.Interface
 
         private int DrawWildfireBar(int initialHeight)
         {
-            var wildfireBuff = PluginInterface.ClientState.LocalPlayer.StatusEffects.Where(o => o.EffectId == 1946);
+            Debug.Assert(ClientState.LocalPlayer != null, "ClientState.LocalPlayer != null");
+            var wildfireBuff = ClientState.LocalPlayer.StatusList.Where(o => o.StatusId == 1946);
         
             var barWidth = WildfireWidth;
             var xPos = CenterX - XOffset + WildfireXOffset;
@@ -273,7 +298,7 @@ namespace DelvUI.Interface
             drawList.AddRectFilled(cursorPos, cursorPos + barSize, 0x88000000);
             if (wildfireBuff.Any())
             {
-                duration = Math.Abs(wildfireBuff.First().Duration);
+                duration = Math.Abs(wildfireBuff.First().RemainingTime);
                 drawList.AddRectFilledMultiColor(
                     cursorPos, cursorPos + new Vector2(barSize.X / 10 * duration, barSize.Y),
                     WildfireColor["gradientLeft"], WildfireColor["gradientRight"], WildfireColor["gradientRight"], WildfireColor["gradientLeft"]

@@ -1,9 +1,15 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Numerics;
-using Dalamud.Game.ClientState.Actors.Types;
-using Dalamud.Game.ClientState.Structs.JobGauge;
+using Dalamud.Data;
+using Dalamud.Game.ClientState;
+using Dalamud.Game.ClientState.JobGauge;
+using Dalamud.Game.ClientState.JobGauge.Types;
+using Dalamud.Game.ClientState.Objects;
+using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Game.Gui;
 using Dalamud.Plugin;
 using ImGuiNET;
 
@@ -14,31 +20,69 @@ namespace DelvUI.Interface
         public override uint JobId => 20;
 
 
-        protected int DemolishHeight => PluginConfiguration.MNKDemolishHeight;
-        protected int DemolishWidth => PluginConfiguration.MNKDemolishWidth;
-        protected int DemolishXOffset => PluginConfiguration.MNKDemolishXOffset;
-        protected int DemolishYOffset => PluginConfiguration.MNKDemolishYOffset;
-        protected int ChakraHeight => PluginConfiguration.MNKChakraHeight;
-        protected int ChakraWidth => PluginConfiguration.MNKChakraWidth;
-        protected int ChakraXOffset => PluginConfiguration.MNKChakraXOffset;
-        protected int ChakraYOffset => PluginConfiguration.MNKChakraYOffset;
-        protected int BuffHeight => PluginConfiguration.MNKBuffHeight;
-        protected int BuffWidth => PluginConfiguration.MNKBuffWidth;
-        protected int BuffXOffset => PluginConfiguration.MNKBuffXOffset;
-        protected int BuffYOffset => PluginConfiguration.MNKBuffYOffset;
-        protected int TimeTwinXOffset => PluginConfiguration.MNKTimeTwinXOffset;
-        protected int TimeTwinYOffset => PluginConfiguration.MNKTimeTwinYOffset;
-        protected  int TimeLeadenXOffset => PluginConfiguration.MNKTimeLeadenXOffset;
-        protected int TimeLeadenYOffset => PluginConfiguration.MNKTimeLeadenYOffset;
-        protected int TimeDemoXOffset => PluginConfiguration.MNKTimeDemoXOffset;
-        protected int TimeDemoYOffset => PluginConfiguration.MNKTimeDemoYOffset;
+        private int DemolishHeight => PluginConfiguration.MNKDemolishHeight;
 
-        protected Dictionary<string, uint> DemolishColor => PluginConfiguration.JobColorMap[Jobs.MNK * 1000];
-        protected Dictionary<string, uint> ChakraColor => PluginConfiguration.JobColorMap[Jobs.MNK * 1000 + 1];
-        protected Dictionary<string, uint> LeadenFistColor => PluginConfiguration.JobColorMap[Jobs.MNK * 1000 + 2];
-        protected Dictionary<string, uint> TwinSnakesColor => PluginConfiguration.JobColorMap[Jobs.MNK * 1000 + 3];
+        private int DemolishWidth => PluginConfiguration.MNKDemolishWidth;
 
-        public MonkHudWindow(DalamudPluginInterface pluginInterface, PluginConfiguration pluginConfiguration) : base(pluginInterface, pluginConfiguration) { }
+        private int DemolishXOffset => PluginConfiguration.MNKDemolishXOffset;
+
+        private int DemolishYOffset => PluginConfiguration.MNKDemolishYOffset;
+
+        private int ChakraHeight => PluginConfiguration.MNKChakraHeight;
+
+        private int ChakraWidth => PluginConfiguration.MNKChakraWidth;
+
+        private int ChakraXOffset => PluginConfiguration.MNKChakraXOffset;
+
+        private int ChakraYOffset => PluginConfiguration.MNKChakraYOffset;
+
+        private int BuffHeight => PluginConfiguration.MNKBuffHeight;
+
+        private int BuffWidth => PluginConfiguration.MNKBuffWidth;
+
+        private int BuffXOffset => PluginConfiguration.MNKBuffXOffset;
+
+        private int BuffYOffset => PluginConfiguration.MNKBuffYOffset;
+
+        private int TimeTwinXOffset => PluginConfiguration.MNKTimeTwinXOffset;
+
+        private int TimeTwinYOffset => PluginConfiguration.MNKTimeTwinYOffset;
+
+        private int TimeLeadenXOffset => PluginConfiguration.MNKTimeLeadenXOffset;
+
+        private int TimeLeadenYOffset => PluginConfiguration.MNKTimeLeadenYOffset;
+
+        private int TimeDemoXOffset => PluginConfiguration.MNKTimeDemoXOffset;
+
+        private int TimeDemoYOffset => PluginConfiguration.MNKTimeDemoYOffset;
+
+        private Dictionary<string, uint> DemolishColor => PluginConfiguration.JobColorMap[Jobs.MNK * 1000];
+
+        private Dictionary<string, uint> ChakraColor => PluginConfiguration.JobColorMap[Jobs.MNK * 1000 + 1];
+
+        private Dictionary<string, uint> LeadenFistColor => PluginConfiguration.JobColorMap[Jobs.MNK * 1000 + 2];
+
+        private Dictionary<string, uint> TwinSnakesColor => PluginConfiguration.JobColorMap[Jobs.MNK * 1000 + 3];
+
+        public MonkHudWindow(
+            ClientState clientState,
+            DalamudPluginInterface pluginInterface,
+            DataManager dataManager,
+            GameGui gameGui,
+            JobGauges jobGauges,
+            ObjectTable objectTable, 
+            PluginConfiguration pluginConfiguration,
+            TargetManager targetManager
+        ) : base(
+            clientState,
+            pluginInterface,
+            dataManager,
+            gameGui,
+            jobGauges,
+            objectTable,
+            pluginConfiguration,
+            targetManager
+        ) { }
 
         protected override void Draw(bool _)
         {
@@ -53,20 +97,19 @@ namespace DelvUI.Interface
 
         private void ActiveBuffs()
         {
-            var target = PluginInterface.ClientState.LocalPlayer;
+            var target = ClientState.LocalPlayer;
 
-            if (!(target is Chara))
-            {
+            if (target == null) {
                 return;
             }
 
             const int xPadding = 1;
             var barWidth = (BuffWidth / 2) - 1;
-            var twinSnakes = target.StatusEffects.FirstOrDefault(o => o.EffectId == 101);
-            var leadenFist = target.StatusEffects.FirstOrDefault(o => o.EffectId == 1861);
+            var twinSnakes = target.StatusList.FirstOrDefault(o => o.StatusId == 101);
+            var leadenFist = target.StatusList.FirstOrDefault(o => o.StatusId == 1861);
 
-            var twinSnakesDuration = twinSnakes.Duration;
-            var leadenFistDuration = leadenFist.Duration;
+            var twinSnakesDuration = twinSnakes == null ? 0f : twinSnakes.RemainingTime;
+            var leadenFistDuration = leadenFist == null ? 0f : leadenFist.RemainingTime;
 
             var xOffset = CenterX - BuffXOffset;
             var cursorPos = new Vector2(CenterX - BuffXOffset, CenterY + BuffYOffset - 8);
@@ -79,9 +122,9 @@ namespace DelvUI.Interface
 
             drawList.AddRectFilled(cursorPos, cursorPos + barSize, 0x88000000);
             drawList.AddRectFilledMultiColor(
-                    buffStart, cursorPos + new Vector2(barSize.X, barSize.Y),
-                    TwinSnakesColor["gradientLeft"], TwinSnakesColor["gradientRight"], TwinSnakesColor["gradientRight"], TwinSnakesColor["gradientLeft"]
-                );
+                buffStart, cursorPos + new Vector2(barSize.X, barSize.Y),
+                TwinSnakesColor["gradientLeft"], TwinSnakesColor["gradientRight"], TwinSnakesColor["gradientRight"], TwinSnakesColor["gradientLeft"]
+            );
 
             if (!PluginConfiguration.ShowBuffTime)
             {
@@ -102,7 +145,7 @@ namespace DelvUI.Interface
             else
             {
                 drawList.AddRect(cursorPos, cursorPos + barSize, 0xFF000000);
-                DrawOutlinedText(Math.Round(twinSnakesDuration).ToString(), new Vector2(twinXOffset, twinYOffset));
+                DrawOutlinedText(Math.Round(twinSnakesDuration).ToString(CultureInfo.InvariantCulture), new Vector2(twinXOffset, twinYOffset));
 
                 cursorPos = new Vector2(cursorPos.X + barWidth + xPadding, cursorPos.Y);
                 var leadenXOffset = TimeLeadenXOffset;
@@ -120,27 +163,26 @@ namespace DelvUI.Interface
                 if (leadenFistDuration <= 0)
                     DrawOutlinedText("0", new Vector2(leadenXOffset, leadenYOffset));
                 else
-                    DrawOutlinedText(Math.Round(leadenFistDuration).ToString(), new Vector2(leadenXOffset, leadenYOffset));
+                    DrawOutlinedText(Math.Round(leadenFistDuration).ToString(CultureInfo.InvariantCulture), new Vector2(leadenXOffset, leadenYOffset));
             }
         }
 
         private void Demolish()
         {
-            var target = PluginInterface.ClientState.Targets.SoftTarget ?? PluginInterface.ClientState.Targets.CurrentTarget;
+            var actor = TargetManager.SoftTarget ?? TargetManager.Target;
 
-            if (!(target is Chara))
+            if (actor is not BattleChara target)
             {
                 return;
             }
 
             const int xPadding = 2;
             var barWidth = (DemolishWidth) - 1;
-            var demolish = target.StatusEffects.FirstOrDefault(o => o.EffectId == 246 || o.EffectId == 1309);
+            var demolish = target.StatusList.FirstOrDefault(o => o.StatusId == 246 || o.StatusId == 1309);
 
-            var demolishDuration = demolish.Duration;
+            var demolishDuration = demolish == null ? 0f : demolish.RemainingTime;
             var demolishColor = DemolishColor;
 
-            var xOffset = CenterX - DemolishXOffset;
             var cursorPos = new Vector2(CenterX - DemolishXOffset - 255, CenterY + DemolishYOffset - 52);
             var barSize = new Vector2(barWidth, DemolishHeight);
             var drawList = ImGui.GetWindowDrawList();
@@ -152,20 +194,19 @@ namespace DelvUI.Interface
 
             drawList.AddRectFilled(cursorPos, cursorPos + barSize, 0x88000000);
             drawList.AddRectFilledMultiColor(
-                    cursorPos, cursorPos + new Vector2((barSize.X / 18) * demolishDuration, barSize.Y),
-                    demolishColor["gradientLeft"], demolishColor["gradientRight"], demolishColor["gradientRight"], demolishColor["gradientLeft"]
-                );
+                cursorPos, cursorPos + new Vector2((barSize.X / 18) * demolishDuration, barSize.Y),
+                demolishColor["gradientLeft"], demolishColor["gradientRight"], demolishColor["gradientRight"], demolishColor["gradientLeft"]
+            );
             drawList.AddRect(cursorPos, cursorPos + barSize, 0xFF000000);
-            if (!PluginConfiguration.ShowDemolishTime)
-                return;
-            else
-                DrawOutlinedText(Math.Round(demolishDuration).ToString(), new Vector2(demoXOffset, demoYOffset));
 
+            if (PluginConfiguration.ShowDemolishTime) {
+                DrawOutlinedText(Math.Round(demolishDuration).ToString(CultureInfo.InvariantCulture), new Vector2(demoXOffset, demoYOffset));
+            }
         }
 
         private void ChakraBar()
         {
-            var gauge = PluginInterface.ClientState.JobGauges.Get<MNKGauge>();
+            var gauge = JobGauges.Get<MNKGauge>();
 
             const int xPadding = 2;
             var barWidth = (ChakraWidth - xPadding * 3) / 5;
@@ -178,17 +219,14 @@ namespace DelvUI.Interface
             for (var i = 0; i <= 5 - 1; i++)
             {
                 drawList.AddRectFilled(cursorPos, cursorPos + barSize, 0x88000000);
-                if (gauge.NumChakra > i)
+                if (gauge.Chakra > i)
                 {
                     drawList.AddRectFilledMultiColor(
-                            cursorPos, cursorPos + new Vector2(barSize.X, barSize.Y),
-                            ChakraColor["gradientLeft"], ChakraColor["gradientRight"], ChakraColor["gradientRight"], ChakraColor["gradientLeft"]
-                        );
+                        cursorPos, cursorPos + new Vector2(barSize.X, barSize.Y),
+                        ChakraColor["gradientLeft"], ChakraColor["gradientRight"], ChakraColor["gradientRight"], ChakraColor["gradientLeft"]
+                    );
                 }
-                else
-                {
-
-                }
+                
                 drawList.AddRect(cursorPos, cursorPos + barSize, 0xFF000000);
                 cursorPos = new Vector2(cursorPos.X + barWidth + xPadding, cursorPos.Y);
             }

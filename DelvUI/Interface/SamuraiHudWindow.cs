@@ -1,9 +1,11 @@
 ﻿using System;
-using System.Linq;
-using System.Collections.Generic;
 using System.Numerics;
-using Dalamud.Game.ClientState.Actors.Types;
-using Dalamud.Game.ClientState.Structs.JobGauge;
+using Dalamud.Data;
+using Dalamud.Game.ClientState;
+using Dalamud.Game.ClientState.JobGauge;
+using Dalamud.Game.ClientState.JobGauge.Types;
+using Dalamud.Game.ClientState.Objects;
+using Dalamud.Game.Gui;
 using Dalamud.Plugin;
 using ImGuiNET;
 
@@ -11,42 +13,64 @@ namespace DelvUI.Interface
 {
     public class SamuraiHudWindow : HudWindow
     {
-
         public override uint JobId => 34;
 
         private bool GaugeEnabled => PluginConfiguration.SAMGaugeEnabled;
-        protected int GaugeHeight => PluginConfiguration.SAMGaugeHeight;
-        protected int GaugeWidth => PluginConfiguration.SAMGaugeWidth;
-        protected int GaugeXOffset => PluginConfiguration.SAMGaugeXOffset;
-        protected int GaugeYOffset => PluginConfiguration.SAMGaugeYOffset;
+        private int GaugeHeight => PluginConfiguration.SAMGaugeHeight;
+        private int GaugeWidth => PluginConfiguration.SAMGaugeWidth;
+        private int GaugeXOffset => PluginConfiguration.SAMGaugeXOffset;
+        private int GaugeYOffset => PluginConfiguration.SAMGaugeYOffset;
 
         private bool SenEnabled => PluginConfiguration.SAMSenEnabled;
-        protected int SenPadding => PluginConfiguration.SAMSenPadding;
-        protected int SenHeight => PluginConfiguration.SAMSenHeight;
-        protected int SenWidth => PluginConfiguration.SAMSenWidth;
-        protected int SenXOffset => PluginConfiguration.SAMSenXOffset;
-        protected int SenYOffset => PluginConfiguration.SAMSenYOffset;
+        private int SenPadding => PluginConfiguration.SAMSenPadding;
+        private int SenHeight => PluginConfiguration.SAMSenHeight;
+        private int SenWidth => PluginConfiguration.SAMSenWidth;
+        private int SenXOffset => PluginConfiguration.SAMSenXOffset;
+        private int SenYOffset => PluginConfiguration.SAMSenYOffset;
 
         private bool MeditationEnabled => PluginConfiguration.SAMMeditationEnabled;
-        protected int MeditationPadding => PluginConfiguration.SAMMeditationPadding;
-        protected int MeditationHeight => PluginConfiguration.SAMMeditationHeight;
-        protected int MeditationWidth => PluginConfiguration.SAMMeditationWidth;
-        protected int MeditationXOffset => PluginConfiguration.SAMMeditationXOffset;
-        protected int MeditationYOffset => PluginConfiguration.SAMMeditationYOffset;
+        private int MeditationPadding => PluginConfiguration.SAMMeditationPadding;
+        private int MeditationHeight => PluginConfiguration.SAMMeditationHeight;
+        private int MeditationWidth => PluginConfiguration.SAMMeditationWidth;
+        private int MeditationXOffset => PluginConfiguration.SAMMeditationXOffset;
+        private int MeditationYOffset => PluginConfiguration.SAMMeditationYOffset;
 
-
-
-        public SamuraiHudWindow(DalamudPluginInterface pluginInterface, PluginConfiguration pluginConfiguration) : base(pluginInterface, pluginConfiguration) { }
+        public SamuraiHudWindow(
+            ClientState clientState,
+            DalamudPluginInterface pluginInterface,
+            DataManager dataManager,
+            GameGui gameGui,
+            JobGauges jobGauges,
+            ObjectTable objectTable, 
+            PluginConfiguration pluginConfiguration,
+            TargetManager targetManager
+        ) : base(
+            clientState,
+            pluginInterface,
+            dataManager,
+            gameGui,
+            jobGauges,
+            objectTable,
+            pluginConfiguration,
+            targetManager
+        ) { }
 
         protected override void Draw(bool _)
         {
             DrawHealthBar();
-            if (GaugeEnabled)
+
+            if (GaugeEnabled) {
                 DrawPrimaryResourceBar();
-            if (SenEnabled)
+            }
+
+            if (SenEnabled) {
                 DrawSenResourceBar();
-            if (MeditationEnabled)
+            }
+
+            if (MeditationEnabled) {
                 DrawMeditationResourceBar();
+            }
+            
             DrawTargetBar();
             DrawFocusBar();
             DrawCastBar();
@@ -54,7 +78,7 @@ namespace DelvUI.Interface
 
         protected override void DrawPrimaryResourceBar()
         {
-            var gauge = PluginInterface.ClientState.JobGauges.Get<SAMGauge>();
+            var gauge = JobGauges.Get<SAMGauge>();
 
             var xPos = CenterX - XOffset + GaugeXOffset;
             var yPos = CenterY + YOffset + GaugeHeight + GaugeYOffset;
@@ -78,72 +102,60 @@ namespace DelvUI.Interface
 
         }
 
-        private void DrawSenResourceBar()
-        {
-            var gauge = PluginInterface.ClientState.JobGauges.Get<SAMGauge>();
+        private void DrawSenResourceBar() {
+            var gauge = JobGauges.Get<SAMGauge>();
 
             const int numChunks = 3;
 
-            var SenBarWidth = (SenWidth - SenPadding * (numChunks - 1)) / numChunks;
-            var SenBarSize = new Vector2(SenBarWidth, SenHeight);
+            var senBarWidth = (SenWidth - SenPadding * (numChunks - 1)) / numChunks;
+            var senBarSize = new Vector2(senBarWidth, SenHeight);
             var xPos = CenterX - SenXOffset;
             var yPos = CenterY + SenYOffset;
-            var cursorPos = new Vector2(xPos - SenPadding - SenBarWidth, yPos);
+            var cursorPos = new Vector2(xPos - SenPadding - senBarWidth, yPos);
 
             var drawList = ImGui.GetWindowDrawList();
 
             // Setsu Bar
-            cursorPos = new Vector2(cursorPos.X + SenPadding + SenBarWidth, cursorPos.Y);
-            if (gauge.HasSetsu()) drawList.AddRectFilled(cursorPos, cursorPos + SenBarSize, 0xFFF7EA59);
-            else drawList.AddRectFilled(cursorPos, cursorPos + SenBarSize, 0x88000000);
-            drawList.AddRect(cursorPos, cursorPos + SenBarSize, 0xFF000000);
+            cursorPos = new Vector2(cursorPos.X + SenPadding + senBarWidth, cursorPos.Y);
+            drawList.AddRectFilled(cursorPos, cursorPos + senBarSize, gauge.HasSetsu ? 0xFFF7EA59 : 0x88000000);
+            drawList.AddRect(cursorPos, cursorPos + senBarSize, 0xFF000000);
 
             // Getsu Bar
-            cursorPos = new Vector2(cursorPos.X + SenPadding + SenBarWidth, cursorPos.Y);
-            if (gauge.HasGetsu()) drawList.AddRectFilled(cursorPos, cursorPos + SenBarSize, 0xFFF77E59);
-            else drawList.AddRectFilled(cursorPos, cursorPos + SenBarSize, 0x88000000);
-            drawList.AddRect(cursorPos, cursorPos + SenBarSize, 0xFF000000);
+            cursorPos = new Vector2(cursorPos.X + SenPadding + senBarWidth, cursorPos.Y);
+            drawList.AddRectFilled(cursorPos, cursorPos + senBarSize, gauge.HasGetsu ? 0xFFF77E59 : 0x88000000);
+            drawList.AddRect(cursorPos, cursorPos + senBarSize, 0xFF000000);
 
             // Ka Bar
-            cursorPos = new Vector2(cursorPos.X + SenPadding + SenBarWidth, cursorPos.Y);
-            if (gauge.HasKa()) drawList.AddRectFilled(cursorPos, cursorPos + SenBarSize, 0XFF5959F7);
-            else drawList.AddRectFilled(cursorPos, cursorPos + SenBarSize, 0x88000000);
-            drawList.AddRect(cursorPos, cursorPos + SenBarSize, 0xFF000000);
+            cursorPos = new Vector2(cursorPos.X + SenPadding + senBarWidth, cursorPos.Y);
+            drawList.AddRectFilled(cursorPos, cursorPos + senBarSize, gauge.HasKa ? 0XFF5959F7 : 0x88000000);
+            drawList.AddRect(cursorPos, cursorPos + senBarSize, 0xFF000000);
         }
 
 
         private void DrawMeditationResourceBar()
         {
-            var gauge = PluginInterface.ClientState.JobGauges.Get<SAMGauge>();
+            var gauge = JobGauges.Get<SAMGauge>();
 
             const int numChunks = 3;
 
-            var MeditationBarWidth = (MeditationWidth - MeditationPadding * (numChunks - 1)) / numChunks;
-            var MeditationBarSize = new Vector2(MeditationBarWidth, MeditationHeight);
+            var meditationBarWidth = (MeditationWidth - MeditationPadding * (numChunks - 1)) / numChunks;
+            var meditationBarSize = new Vector2(meditationBarWidth, MeditationHeight);
             var xPos = CenterX - MeditationXOffset;
             var yPos = CenterY + MeditationYOffset + MeditationHeight;
-            var cursorPos = new Vector2(xPos - MeditationPadding - MeditationBarWidth, yPos);
+            var cursorPos = new Vector2(xPos - MeditationPadding - meditationBarWidth, yPos);
 
             var drawList = ImGui.GetWindowDrawList();
 
             // Meditation Stacks
-            for (var i = 1; i < 4; i++)
-            {
-                cursorPos = new Vector2(cursorPos.X + MeditationPadding + MeditationBarWidth, cursorPos.Y);
+            for (var i = 1; i < 4; i++) {
+                cursorPos = new Vector2(cursorPos.X + MeditationPadding + meditationBarWidth, cursorPos.Y);
 
-                if (gauge.MeditationStacks >= i)
-                {
-                    drawList.AddRectFilled(
-                        cursorPos, cursorPos + MeditationBarSize,
-                        ImGui.ColorConvertFloat4ToU32(new Vector4(247 / 255f, 163 / 255f, 89 / 255f, 255f))
-                    );
-                }
-                else
-                {
-                    drawList.AddRectFilled(cursorPos, cursorPos + MeditationBarSize, 0x88000000);
-                }
+                drawList.AddRectFilled(
+                    cursorPos, cursorPos + meditationBarSize,
+                    gauge.MeditationStacks >= i ? ImGui.ColorConvertFloat4ToU32(new Vector4(247 / 255f, 163 / 255f, 89 / 255f, 255f)) : 0x88000000
+                );
 
-                drawList.AddRect(cursorPos, cursorPos + MeditationBarSize, 0xFF000000);
+                drawList.AddRect(cursorPos, cursorPos + meditationBarSize, 0xFF000000);
             }
         }
     }

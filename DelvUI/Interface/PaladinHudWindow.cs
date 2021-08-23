@@ -1,9 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Numerics;
-using Dalamud.Game.ClientState.Structs.JobGauge;
+using Dalamud.Data;
+using Dalamud.Game.ClientState;
+using Dalamud.Game.ClientState.JobGauge;
+using Dalamud.Game.ClientState.JobGauge.Types;
+using Dalamud.Game.ClientState.Objects;
+using Dalamud.Game.Gui;
 using Dalamud.Plugin;
 using ImGuiNET;
 
@@ -67,7 +73,25 @@ namespace DelvUI.Interface
         
         private Dictionary<string, uint> AtonementColor => PluginConfiguration.JobColorMap[Jobs.PLD * 1000 + 5];
         
-        public PaladinHudWindow(DalamudPluginInterface pluginInterface, PluginConfiguration pluginConfiguration) : base(pluginInterface, pluginConfiguration) {}
+        public PaladinHudWindow(
+            ClientState clientState,
+            DalamudPluginInterface pluginInterface,
+            DataManager dataManager,
+            GameGui gameGui,
+            JobGauges jobGauges,
+            ObjectTable objectTable, 
+            PluginConfiguration pluginConfiguration,
+            TargetManager targetManager
+        ) : base(
+            clientState,
+            pluginInterface,
+            dataManager,
+            gameGui,
+            jobGauges,
+            objectTable,
+            pluginConfiguration,
+            targetManager
+        ) { }
 
         protected override void Draw(bool _)
         {
@@ -83,8 +107,8 @@ namespace DelvUI.Interface
 
         private int DrawManaBar(int initialHeight)
         {
-            Debug.Assert(PluginInterface.ClientState.LocalPlayer != null, "PluginInterface.ClientState.LocalPlayer != null");
-            var actor = PluginInterface.ClientState.LocalPlayer;
+            Debug.Assert(ClientState.LocalPlayer != null, "ClientState.LocalPlayer != null");
+            var actor = ClientState.LocalPlayer;
 
             var barWidth = (ManaBarWidth - ManaBarPadding * 4f) / 5f;
             var posX = CenterX - XOffset;
@@ -118,7 +142,7 @@ namespace DelvUI.Interface
 
         private int DrawOathGauge(int initialHeight)
         {
-            var gauge = PluginInterface.ClientState.JobGauges.Get<PLDGauge>();
+            var gauge = JobGauges.Get<PLDGauge>();
 
             var barWidth = (OathGaugeBarWidth - OathGaugeBarPadding) / 2f;
             var xPos = CenterX - XOffset + OathGaugeXOffset;
@@ -130,7 +154,7 @@ namespace DelvUI.Interface
             var drawList = ImGui.GetWindowDrawList();
             for (var i = 2; i >= 1; --i)
             {
-                var scale = Math.Max(Math.Min(gauge.GaugeAmount, chunkSize * i) - chunkSize * (i - 1), 0f) / chunkSize;
+                var scale = Math.Max(Math.Min(gauge.OathGauge, chunkSize * i) - chunkSize * (i - 1), 0f) / chunkSize;
                 drawList.AddRectFilled(cursorPos, cursorPos + barSize, 0x88000000);
                 if (scale >= 1.0)
                 {
@@ -170,8 +194,9 @@ namespace DelvUI.Interface
 
         private int DrawBuffBar(int initialHeight)
         {
-            var fightOrFlightBuff = PluginInterface.ClientState.LocalPlayer.StatusEffects.Where(o => o.EffectId == 76);
-            var requiescatBuff = PluginInterface.ClientState.LocalPlayer.StatusEffects.Where(o => o.EffectId == 1368);
+            Debug.Assert(ClientState.LocalPlayer != null, "ClientState.LocalPlayer != null");
+            var fightOrFlightBuff = ClientState.LocalPlayer.StatusList.Where(o => o.StatusId == 76);
+            var requiescatBuff = ClientState.LocalPlayer.StatusList.Where(o => o.StatusId == 1368);
             
             var buffBarBarWidth = BuffBarWidth;
             var xPos = CenterX - XOffset + BuffBarXOffset;
@@ -188,8 +213,8 @@ namespace DelvUI.Interface
                 var innerBarHeight = buffBarBarHeight / 2;
                 barSize = new Vector2(buffBarBarWidth, innerBarHeight);
                 
-                var fightOrFlightDuration = Math.Abs(fightOrFlightBuff.First().Duration);
-                var requiescatDuration = Math.Abs(requiescatBuff.First().Duration);
+                var fightOrFlightDuration = Math.Abs(fightOrFlightBuff.First().RemainingTime);
+                var requiescatDuration = Math.Abs(requiescatBuff.First().RemainingTime);
                 
                 drawList.AddRectFilledMultiColor(
                     cursorPos, cursorPos + new Vector2(barSize.X / 25f * fightOrFlightDuration, barSize.Y), 
@@ -200,34 +225,34 @@ namespace DelvUI.Interface
                     RequiescatColor["gradientLeft"], RequiescatColor["gradientRight"], RequiescatColor["gradientRight"], RequiescatColor["gradientLeft"]
                 );
                 
-                var fightOrFlightDurationText = fightOrFlightDuration == 0 ? "" : Math.Round(fightOrFlightDuration).ToString();
+                var fightOrFlightDurationText = fightOrFlightDuration == 0 ? "" : Math.Round(fightOrFlightDuration).ToString(CultureInfo.InvariantCulture);
                 DrawOutlinedText(fightOrFlightDurationText, new Vector2(cursorPos.X + 5f, cursorPos.Y - 2f), PluginConfiguration.PLDFightOrFlightColor, new Vector4(0f, 0f, 0f, 1f));
                 
-                var requiescatDurationText = requiescatDuration == 0 ? "" : Math.Round(requiescatDuration).ToString();
+                var requiescatDurationText = requiescatDuration == 0 ? "" : Math.Round(requiescatDuration).ToString(CultureInfo.InvariantCulture);
                 DrawOutlinedText(requiescatDurationText, new Vector2(cursorPos.X + 27f, cursorPos.Y - 2f), PluginConfiguration.PLDRequiescatColor, new Vector4(0f, 0f, 0f, 1f));
                 
                 barSize = new Vector2(buffBarBarWidth, buffBarBarHeight);
             }
             else if (fightOrFlightBuff.Any())
             {
-                var fightOrFlightDuration = Math.Abs(fightOrFlightBuff.First().Duration);
+                var fightOrFlightDuration = Math.Abs(fightOrFlightBuff.First().RemainingTime);
                 drawList.AddRectFilledMultiColor(
                     cursorPos, cursorPos + new Vector2(barSize.X / 25f * fightOrFlightDuration, barSize.Y), 
                     FightOrFlightColor["gradientLeft"], FightOrFlightColor["gradientRight"], FightOrFlightColor["gradientRight"], FightOrFlightColor["gradientLeft"]
                 );
                 
-                var fightOrFlightDurationText = fightOrFlightDuration == 0 ? "" : Math.Round(fightOrFlightDuration).ToString();
+                var fightOrFlightDurationText = fightOrFlightDuration == 0 ? "" : Math.Round(fightOrFlightDuration).ToString(CultureInfo.InvariantCulture);
                 DrawOutlinedText(fightOrFlightDurationText, new Vector2(cursorPos.X + 5f, cursorPos.Y - 2f), PluginConfiguration.PLDFightOrFlightColor, new Vector4(0f, 0f, 0f, 1f));
             }
             else if (requiescatBuff.Any())
             {
-                var requiescatDuration = Math.Abs(requiescatBuff.First().Duration);
+                var requiescatDuration = Math.Abs(requiescatBuff.First().RemainingTime);
                 drawList.AddRectFilledMultiColor(
                     cursorPos, cursorPos + new Vector2(barSize.X / 12f * requiescatDuration, barSize.Y), 
                     RequiescatColor["gradientLeft"], RequiescatColor["gradientRight"], RequiescatColor["gradientRight"], RequiescatColor["gradientLeft"]
                 );
                 
-                var requiescatDurationText = requiescatDuration == 0 ? "" : Math.Round(requiescatDuration).ToString();
+                var requiescatDurationText = requiescatDuration == 0 ? "" : Math.Round(requiescatDuration).ToString(CultureInfo.InvariantCulture);
                 DrawOutlinedText(requiescatDurationText, new Vector2(cursorPos.X + 5f, cursorPos.Y - 2f), PluginConfiguration.PLDRequiescatColor, new Vector4(0f, 0f, 0f, 1f));
             }
 
@@ -237,7 +262,8 @@ namespace DelvUI.Interface
 
         private int DrawAtonementBar(int initialHeight)
         {
-            var atonementBuff = PluginInterface.ClientState.LocalPlayer.StatusEffects.Where(o => o.EffectId == 1902);
+            Debug.Assert(ClientState.LocalPlayer != null, "ClientState.LocalPlayer != null");
+            var atonementBuff = ClientState.LocalPlayer.StatusList.Where(o => o.StatusId == 1902);
             var stackCount = atonementBuff.Any() ? atonementBuff.First().StackCount : 0;
             
             var barWidth = (AtonementBarWidth - AtonementBarPadding * 2) / 3f;

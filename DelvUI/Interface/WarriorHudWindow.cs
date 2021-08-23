@@ -4,7 +4,12 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;
-using Dalamud.Game.ClientState.Structs.JobGauge;
+using Dalamud.Data;
+using Dalamud.Game.ClientState;
+using Dalamud.Game.ClientState.JobGauge;
+using Dalamud.Game.ClientState.JobGauge.Types;
+using Dalamud.Game.ClientState.Objects;
+using Dalamud.Game.Gui;
 using Dalamud.Plugin;
 using ImGuiNET;
 
@@ -44,12 +49,30 @@ namespace DelvUI.Interface
 
         private Dictionary<string, uint> EmptyColor => PluginConfiguration.JobColorMap[Jobs.WAR * 1000 + 4];
 
-        public WarriorHudWindow(DalamudPluginInterface pluginInterface, PluginConfiguration pluginConfiguration) : base(pluginInterface, pluginConfiguration) { }
+        public WarriorHudWindow(
+            ClientState clientState,
+            DalamudPluginInterface pluginInterface,
+            DataManager dataManager,
+            GameGui gameGui,
+            JobGauges jobGauges,
+            ObjectTable objectTable, 
+            PluginConfiguration pluginConfiguration,
+            TargetManager targetManager
+        ) : base(
+            clientState,
+            pluginInterface,
+            dataManager,
+            gameGui,
+            jobGauges,
+            objectTable,
+            pluginConfiguration,
+            targetManager
+        ) { }
 
         protected override void Draw(bool _) {
             DrawHealthBar();
             var nextHeight = DrawStormsEyeBar(0);
-            DrawBeastGauge(nextHeight);
+            nextHeight = DrawBeastGauge(nextHeight);
             DrawTargetBar();
             DrawFocusBar();
             DrawCastBar();
@@ -57,9 +80,9 @@ namespace DelvUI.Interface
 
         private int DrawStormsEyeBar(int initialHeight)
         {
-            Debug.Assert(PluginInterface.ClientState.LocalPlayer != null, "PluginInterface.ClientState.LocalPlayer != null");
-            var innerReleaseBuff = PluginInterface.ClientState.LocalPlayer.StatusEffects.Where(o => o.EffectId == 1177);
-            var stormsEyeBuff = PluginInterface.ClientState.LocalPlayer.StatusEffects.Where(o => o.EffectId == 90);
+            Debug.Assert(ClientState.LocalPlayer != null, "ClientState.LocalPlayer != null");
+            var innerReleaseBuff = ClientState.LocalPlayer.StatusList.Where(o => o.StatusId == 1177);
+            var stormsEyeBuff = ClientState.LocalPlayer.StatusList.Where(o => o.StatusId == 90);
 
             var barWidth = StormsEyeWidth;
             var xPos = CenterX - XOffset;
@@ -73,7 +96,7 @@ namespace DelvUI.Interface
             drawList.AddRectFilled(cursorPos, cursorPos + barSize, 0x88000000);
             if (innerReleaseBuff.Any())
             {
-                duration = Math.Abs(innerReleaseBuff.First().Duration);
+                duration = Math.Abs(innerReleaseBuff.First().RemainingTime);
                 drawList.AddRectFilledMultiColor(
                     cursorPos, cursorPos + new Vector2((barSize.X / 10) * duration, barSize.Y),
                     InnerReleaseColor["gradientLeft"], InnerReleaseColor["gradientRight"], InnerReleaseColor["gradientRight"], InnerReleaseColor["gradientLeft"]
@@ -81,7 +104,7 @@ namespace DelvUI.Interface
             }
             else if (stormsEyeBuff.Any())
             {
-                duration = Math.Abs(stormsEyeBuff.First().Duration);
+                duration = Math.Abs(stormsEyeBuff.First().RemainingTime);
                 drawList.AddRectFilledMultiColor(
                     cursorPos, cursorPos + new Vector2((barSize.X / 60) * duration, barSize.Y),
                     StormsEyeColor["gradientLeft"], StormsEyeColor["gradientRight"], StormsEyeColor["gradientRight"], StormsEyeColor["gradientLeft"]
@@ -97,8 +120,9 @@ namespace DelvUI.Interface
         }
 
         private int DrawBeastGauge(int initialHeight) {
-            var gauge = PluginInterface.ClientState.JobGauges.Get<WARGauge>();
-            var nascentChaosBuff = PluginInterface.ClientState.LocalPlayer.StatusEffects.Where(o => o.EffectId == 1897);
+            Debug.Assert(ClientState.LocalPlayer != null, "ClientState.LocalPlayer != null");
+            var gauge = JobGauges.Get<WARGauge>();
+            var nascentChaosBuff = ClientState.LocalPlayer.StatusList.Where(o => o.StatusId == 1897);
             var nascentChaosDisplayed = nascentChaosBuff.Any();
             
             var barWidth = (BeastGaugeWidth - BeastGaugePadding) / 2;
@@ -112,7 +136,7 @@ namespace DelvUI.Interface
 
             for (var i = 2; i >= 1; i--)
             {
-                var beast = Math.Max(Math.Min(gauge.BeastGaugeAmount, chunkSize * i) - chunkSize * (i - 1), 0);
+                var beast = Math.Max(Math.Min(gauge.BeastGauge, chunkSize * i) - chunkSize * (i - 1), 0);
                 var scale = (float) beast / chunkSize;
                 
                 drawList.AddRectFilled(cursorPos, cursorPos + barSize, 0x88000000);

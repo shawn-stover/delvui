@@ -1,10 +1,15 @@
-﻿using Dalamud.Game.ClientState.Actors.Types;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;
-using Dalamud.Game.ClientState.Structs.JobGauge;
+using Dalamud.Data;
+using Dalamud.Game.ClientState;
+using Dalamud.Game.ClientState.JobGauge;
+using Dalamud.Game.ClientState.JobGauge.Types;
+using Dalamud.Game.ClientState.Objects;
+using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Game.Gui;
 using Dalamud.Plugin;
 using ImGuiNET;
 
@@ -15,27 +20,20 @@ namespace DelvUI.Interface
         public override uint JobId => 28;
 
         private int FairyBarHeight => PluginConfiguration.FairyBarHeight;
-
         private int FairyBarWidth => PluginConfiguration.FairyBarWidth;
-
         private int FairyBarX => PluginConfiguration.FairyBarX;
-
         private int FairyBarY => PluginConfiguration.FairyBarY;
 
         private int SchAetherBarHeight => PluginConfiguration.SchAetherBarHeight;
-
         private int SchAetherBarWidth => PluginConfiguration.SchAetherBarWidth;
-
         private int SchAetherBarX => PluginConfiguration.SchAetherBarX;
-
         private int SchAetherBarY => PluginConfiguration.SchAetherBarY;
-
         private int SchAetherBarPad => PluginConfiguration.SchAetherBarPad;
 
-        protected int BioBarHeight => PluginConfiguration.SCHBioBarHeight;
-        protected int BioBarWidth => PluginConfiguration.SCHBioBarWidth;
-        protected int BioBarX => PluginConfiguration.SCHBioBarX;
-        protected int BioBarY => PluginConfiguration.SCHBioBarY;
+        private int BioBarHeight => PluginConfiguration.SCHBioBarHeight;
+        private int BioBarWidth => PluginConfiguration.SCHBioBarWidth;
+        private int BioBarX => PluginConfiguration.SCHBioBarX;
+        private int BioBarY => PluginConfiguration.SCHBioBarY;
 
         private bool ShowBioBar => PluginConfiguration.SCHShowBioBar;
         private bool ShowFairyBar => PluginConfiguration.SCHShowFairyBar;
@@ -50,10 +48,27 @@ namespace DelvUI.Interface
         private Dictionary<string, uint> SCHBioColor => PluginConfiguration.JobColorMap[Jobs.SCH * 1000 + 3];
 
         private new Vector2 BarSize { get; set; }
-
         private Vector2 BarCoords { get; set; }
 
-        public ScholarHudWindow(DalamudPluginInterface pluginInterface, PluginConfiguration pluginConfiguration) : base(pluginInterface, pluginConfiguration) { }
+        public ScholarHudWindow(
+            ClientState clientState,
+            DalamudPluginInterface pluginInterface,
+            DataManager dataManager,
+            GameGui gameGui,
+            JobGauges jobGauges,
+            ObjectTable objectTable, 
+            PluginConfiguration pluginConfiguration,
+            TargetManager targetManager
+        ) : base(
+            clientState,
+            pluginInterface,
+            dataManager,
+            gameGui,
+            jobGauges,
+            objectTable,
+            pluginConfiguration,
+            targetManager
+        ) { }
 
         protected override void Draw(bool _)
         {
@@ -81,7 +96,7 @@ namespace DelvUI.Interface
 
         private void DrawFairyBar()
         {
-            var gauge = (float)PluginInterface.ClientState.JobGauges.Get<SCHGauge>().FairyGaugeAmount;
+            var gauge = (float)JobGauges.Get<SCHGauge>().FairyGauge;
             BarSize = new Vector2(FairyBarWidth, FairyBarHeight);
             BarCoords = new Vector2(FairyBarX, FairyBarY);
             var cursorPos = new Vector2(CenterX - BarCoords.X, CenterY + BarCoords.Y - 49);
@@ -98,8 +113,8 @@ namespace DelvUI.Interface
 
         private void DrawAetherBar()
         {
-            Debug.Assert(PluginInterface.ClientState.LocalPlayer != null, "PluginInterface.ClientState.LocalPlayer != null");
-            var aetherFlowBuff = PluginInterface.ClientState.LocalPlayer.StatusEffects.FirstOrDefault(o => o.EffectId == 304);
+            Debug.Assert(ClientState.LocalPlayer != null, "ClientState.LocalPlayer != null");
+            var aetherFlowBuff = ClientState.LocalPlayer.StatusList.FirstOrDefault(o => o.StatusId == 304);
             var barWidth = (SchAetherBarWidth / 3);
             BarSize = new Vector2(barWidth, SchAetherBarHeight);
             BarCoords = new Vector2(SchAetherBarX, SchAetherBarY);
@@ -117,8 +132,9 @@ namespace DelvUI.Interface
 
             drawList.AddRectFilled(cursorPos, cursorPos + BarSize, EmptyColor["gradientRight"]);
             drawList.AddRect(cursorPos, cursorPos + BarSize, 0xFF000000);
-            
-            switch (aetherFlowBuff.StackCount)
+
+            var stackCount = aetherFlowBuff?.StackCount ?? 0;
+            switch (stackCount)
             {
                 case 1:
                     drawList.AddRectFilled(cursorPos, cursorPos + BarSize, SchAetherColor["gradientRight"]);
@@ -148,29 +164,27 @@ namespace DelvUI.Interface
 
         private void DrawBioBar()
         {
-            var target = PluginInterface.ClientState.Targets.SoftTarget ?? PluginInterface.ClientState.Targets.CurrentTarget;
+            var actor = TargetManager.SoftTarget ?? TargetManager.Target;
             BarSize = new Vector2(BioBarWidth, BioBarHeight);
             BarCoords = new Vector2(BioBarX, BioBarY);
             var cursorPos = new Vector2(CenterX - BarCoords.X, CenterY + BarCoords.Y);
 
             var drawList = ImGui.GetWindowDrawList();;
 
-            if (!(target is Chara))
+            if (actor is not BattleChara target)
             {
                 drawList.AddRectFilled(cursorPos, cursorPos + BarSize, EmptyColor["gradientRight"]);
                 drawList.AddRect(cursorPos, cursorPos + BarSize, 0xFF000000);
                 return;
             }
-            var bio = target.StatusEffects.FirstOrDefault(o => o.EffectId == 179 || o.EffectId == 189 || o.EffectId == 1895);
-            var bioDuration = (int)bio.Duration;
-            var xOffset = CenterX;
+            
+            var bio = target.StatusList.FirstOrDefault(o => o.StatusId is 179 or 189 or 1895);
+            var bioDuration = (int)(bio?.RemainingTime ?? 0);
 
             drawList.AddRectFilled(cursorPos, cursorPos + BarSize, EmptyColor["gradientRight"]);
             drawList.AddRectFilled(cursorPos, cursorPos + new Vector2((BarSize.X / 30) * bioDuration, BarSize.Y), SCHBioColor["gradientRight"]);
             drawList.AddRect(cursorPos, cursorPos + BarSize, 0xFF000000);
             DrawOutlinedText(bioDuration.ToString(CultureInfo.InvariantCulture), new Vector2(cursorPos.X + BarSize.X * bioDuration / 30 - (bioDuration == 30 ? 30 : bioDuration > 3 ? 20 : 0), cursorPos.Y + (BarSize.Y / 2) - 12));
-
         }
-
     }
 }

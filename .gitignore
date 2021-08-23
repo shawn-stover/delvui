@@ -4,5 +4,9 @@ bin/
 Debug/
 obj/
 
+<<<<<<< HEAD
 DelvUI.sln.DotSettings.user
+=======
+>>>>>>> 8305c3e (chore: migrate to net5.0-windows and dalamud apiv4)
 Folder.DotSettings.user
+DelvUI.sln.DotSettings.user

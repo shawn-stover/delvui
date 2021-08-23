@@ -1,30 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-    <PropertyGroup Label="Target">
-        <PlatformTarget>AnyCPU</PlatformTarget>
-        <TargetFramework>net48</TargetFramework>
-        <LangVersion>preview</LangVersion>
-        <Platforms>AnyCPU</Platforms>
-        <Configurations>Debug;Release</Configurations>
-    </PropertyGroup>
-    <PropertyGroup Label="Build">
-        <OutputType>Library</OutputType>
-        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-        <DebugSymbols>true</DebugSymbols>
-        <DebugType>full</DebugType>
-    </PropertyGroup>
-    <PropertyGroup Label="Feature">
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <Version>0.1.0</Version>
-    </PropertyGroup>
-    <PropertyGroup Condition="'$(Configuration)'=='Release'">
-        <AppOutputBase>$(MSBuildProjectDirectory)\</AppOutputBase>
-        <Deterministic>true</Deterministic>
-    </PropertyGroup>
     <PropertyGroup>
-        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
-        <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
-        <AssemblyName>DelvUI</AssemblyName>
+        <Authors>jdsmith2816</Authors>
+        <Company>-</Company>
+        <Version>0.1.0</Version>
+        <Description>Provides an ElvUI style HUD for FFXIV</Description>
+        <Copyright></Copyright>
+        <PackageProjectUrl>https://github.com/jdsmith2816/DelvUI</PackageProjectUrl>
     </PropertyGroup>
+
+    <PropertyGroup>
+        <TargetFramework>net5.0-windows</TargetFramework>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <LangVersion>latest</LangVersion>
+        <OutputType>Library</OutputType>
+        <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <OutputPath>bin\$(Configuration)\</OutputPath>
+    </PropertyGroup>
+    
+    <PropertyGroup>
+        <DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
+    </PropertyGroup>
+
     <ItemGroup>
         <Content Include="Helpers\TEXTTAGS.md" />
         <Content Include="Media\Fonts\big-noodle-too.ttf">
@@ -33,47 +31,50 @@
     </ItemGroup>
 
     <ItemGroup>
+        <None Include="..\.editorconfig" Link=".editorconfig" />
+    </ItemGroup>
+    
+    <ItemGroup>
         <Reference Include="Dalamud">
             <Private>false</Private>
-            <HintPath>$(APPDATA)\XIVLauncher\addon\Hooks\5.2.7.0\Dalamud.dll</HintPath>
-        </Reference>
-        <Reference Include="FFXIVClientStructs">
-            <Private>true</Private>
-            <HintPath>$(SolutionDir)\lib\FFXIVClientStructs\bin\$(ConfigurationName)\FFXIVClientStructs.dll</HintPath>
+            <HintPath>$(APPDATA)\XIVLauncher\addon\Hooks\dev\Dalamud.dll</HintPath>
         </Reference>
         <Reference Include="Microsoft.CSharp" />
         <Reference Include="Newtonsoft.Json">
             <Private>false</Private>
-            <HintPath>$(APPDATA)\XIVLauncher\addon\Hooks\5.2.7.0\Newtonsoft.Json.dll</HintPath>
+            <HintPath>$(APPDATA)\XIVLauncher\addon\Hooks\dev\Newtonsoft.Json.dll</HintPath>
         </Reference>
         <Reference Include="ImGui.NET">
             <Private>false</Private>
-            <HintPath>$(APPDATA)\XIVLauncher\addon\Hooks\5.2.7.0\ImGui.NET.dll</HintPath>
+            <HintPath>$(APPDATA)\XIVLauncher\addon\Hooks\dev\ImGui.NET.dll</HintPath>
         </Reference>
         <Reference Include="ImGuiScene">
             <Private>false</Private>
-            <HintPath>$(APPDATA)\XIVLauncher\addon\Hooks\5.2.7.0\ImGuiScene.dll</HintPath>
+            <HintPath>$(APPDATA)\XIVLauncher\addon\Hooks\dev\ImGuiScene.dll</HintPath>
         </Reference>
         <Reference Include="Lumina">
             <Private>false</Private>
-            <HintPath>$(APPDATA)\XIVLauncher\addon\Hooks\5.2.7.0\Lumina.dll</HintPath>
+            <HintPath>$(APPDATA)\XIVLauncher\addon\Hooks\dev\Lumina.dll</HintPath>
         </Reference>
         <Reference Include="Lumina.Excel">
             <Private>false</Private>
-            <HintPath>$(APPDATA)\XIVLauncher\addon\Hooks\5.2.7.0\Lumina.Excel.dll</HintPath>
+            <HintPath>$(APPDATA)\XIVLauncher\addon\Hooks\dev\Lumina.Excel.dll</HintPath>
         </Reference>
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="DalamudPackager" Version="2.1.2" />
         <PackageReference Include="ILRepack" Version="2.1.0-beta1" GeneratePathProperty="true" />
     </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\lib\FFXIVClientStructs\FFXIVClientStructs\FFXIVClientStructs.csproj" />
+    </ItemGroup>
     <Target Name="ILRepack" AfterTargets="PostBuildEvent">
         <ItemGroup>
             <InputAssemblies Include="&quot;$(TargetPath)&quot;" />
             <InputAssemblies Include="&quot;$(TargetDir)FFXIVClientStructs.dll&quot;" Exclude="$(TargetPath)" />
             <InputAssemblies Include="&quot;$(TargetDir)FFXIVClientStructs.Common.dll&quot;" Exclude="$(TargetPath)" />
-            <InputAssemblies Include="&quot;$(TargetDir)Serilog.dll&quot;" Exclude="$(TargetPath)" />
+            <InputAssemblies Include="&quot;$(TargetDir)Scriban.dll&quot;" Exclude="$(TargetPath)" />
         </ItemGroup>
-        <Exec Command="$(PkgILRepack)\tools\ILRepack.exe /lib:$(AppData)\XIVLauncher\addon\Hooks\5.2.7.0 /out:&quot;$(TargetDir)..\$(Configuration).ILMerge\$(TargetFileName)&quot; @(InputAssemblies, ' ')" />
+        <Exec Command="$(PkgILRepack)\tools\ILRepack.exe /lib:$(AppData)\XIVLauncher\addon\Hooks\dev /out:&quot;$(TargetDir)..\$(Configuration).ILMerge\$(TargetFileName)&quot; @(InputAssemblies, ' ')" />
     </Target>
 </Project>

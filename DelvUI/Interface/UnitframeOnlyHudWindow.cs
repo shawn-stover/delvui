@@ -1,10 +1,33 @@
-﻿using Dalamud.Plugin;
+﻿using Dalamud.Data;
+using Dalamud.Game.ClientState;
+using Dalamud.Game.ClientState.JobGauge;
+using Dalamud.Game.ClientState.Objects;
+using Dalamud.Game.Gui;
+using Dalamud.Plugin;
 
 namespace DelvUI.Interface {
     public class UnitFrameOnlyHudWindow : HudWindow {
         public override uint JobId => 0;
 
-        public UnitFrameOnlyHudWindow(DalamudPluginInterface pluginInterface, PluginConfiguration pluginConfiguration) : base(pluginInterface, pluginConfiguration) { }
+        public UnitFrameOnlyHudWindow(
+            ClientState clientState,
+            DalamudPluginInterface pluginInterface,
+            DataManager dataManager,
+            GameGui gameGui,
+            JobGauges jobGauges,
+            ObjectTable objectTable, 
+            PluginConfiguration pluginConfiguration,
+            TargetManager targetManager
+        ) : base(
+            clientState,
+            pluginInterface,
+            dataManager,
+            gameGui,
+            jobGauges,
+            objectTable,
+            pluginConfiguration,
+            targetManager
+        ) { }
 
         protected override void Draw(bool _) {
             DrawHealthBar();
@@ -13,6 +36,5 @@ namespace DelvUI.Interface {
             DrawFocusBar();
             DrawCastBar();
         }
-        
     }
 }

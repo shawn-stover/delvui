@@ -456,7 +456,7 @@ namespace DelvUI {
         public void BuildColorMap() {
             JobColorMap = new Dictionary<uint, Dictionary<string, uint>>
             {
-                [Jobs.PLD] = new Dictionary<string, uint>
+                [Jobs.PLD] = new()
                 {
                     ["base"] = ImGui.ColorConvertFloat4ToU32(JobColorPLD),
                     ["background"] = ImGui.ColorConvertFloat4ToU32(JobColorPLD.AdjustColor(-.8f)),

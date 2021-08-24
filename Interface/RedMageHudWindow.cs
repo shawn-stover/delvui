@@ -12,7 +12,7 @@ namespace DelvUIPlugin.Interface {
         private new int BarHeight => 20;
         private new int BarWidth => 254;
         private new int XOffset => 127;
-        private new int YOffset => 440;
+        private new int YOffset => 240;
         
         public RedMageHudWindow(DalamudPluginInterface pluginInterface, PluginConfiguration pluginConfiguration) : base(pluginInterface, pluginConfiguration) { }
 

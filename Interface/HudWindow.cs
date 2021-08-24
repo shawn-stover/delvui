@@ -21,7 +21,7 @@ namespace DelvUIPlugin.Interface {
 
         protected float CenterX => ImGui.GetMainViewport().Size.X / 2f;
         protected float CenterY => ImGui.GetMainViewport().Size.Y / 2f;
-        protected int XOffset => 160;
+        protected int XOffset => 200;
         protected int YOffset => 260;
         protected int BarHeight => 50;
         protected int BarWidth => 270;

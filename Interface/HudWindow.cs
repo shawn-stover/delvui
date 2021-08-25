@@ -23,7 +23,7 @@ namespace DelvUIPlugin.Interface {
         protected float CenterY => ImGui.GetMainViewport().Size.Y / 2f;
         protected int XOffset => 200;
         protected int YOffset => 260;
-        protected int BarHeight => 50;
+        protected int BarHeight => 40;
         protected int BarWidth => 270;
         protected Vector2 BarSize => _barsize;
         

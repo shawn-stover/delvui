@@ -29,8 +29,8 @@ namespace DelvUIPlugin.Interface {
         protected override void DrawPrimaryResourceBar() {
             var actor = PluginInterface.ClientState.LocalPlayer;
             var scale = (float) actor.CurrentMp / actor.MaxMp;
-            var barSize = new Vector2(BarWidth, BarHeight);
-            var cursorPos = new Vector2(CenterX - XOffset, CenterY + YOffset);
+            var barSize = new Vector2(BarWidth+16, BarHeight-5);
+            var cursorPos = new Vector2(CenterX - XOffset-343, CenterY + YOffset+60);
             
             var drawList = ImGui.GetWindowDrawList();
             drawList.AddRectFilled(cursorPos, cursorPos + barSize, 0x88000000);
@@ -50,7 +50,7 @@ namespace DelvUIPlugin.Interface {
             }
             drawList.AddRect(cursorPos, cursorPos + barSize, 0xFF000000);
             drawList.AddRect(cursorPos, cursorPos + new Vector2(barSize.X*0.26f, barSize.Y), 0xFF000000);
-            DrawOutlinedText(actor.CurrentMp.ToString(), new Vector2(CenterX-20, cursorPos.Y-2));
+            //DrawOutlinedText(actor.CurrentMp.ToString(), new Vector2(CenterX-20-359, cursorPos.Y-2));
 
 
 
@@ -59,7 +59,7 @@ namespace DelvUIPlugin.Interface {
         private void DrawWhiteManaBar() {
             var gauge = (float)PluginInterface.ClientState.JobGauges.Get<RDMGauge>().WhiteGauge;
             var barSize = new Vector2(BarWidth, BarHeight);
-            var cursorPos = new Vector2(CenterX - XOffset, CenterY + YOffset - 44);
+            var cursorPos = new Vector2(CenterX - XOffset, CenterY + YOffset - 22);
             var drawList = ImGui.GetWindowDrawList();
             drawList.AddRectFilled(cursorPos, cursorPos + barSize, 0x88000000);
             drawList.AddRectFilledMultiColor(
@@ -77,7 +77,7 @@ namespace DelvUIPlugin.Interface {
         private void DrawBlackManaBar() {
             var gauge = (float) PluginInterface.ClientState.JobGauges.Get<RDMGauge>().BlackGauge;
             var barSize = new Vector2(BarWidth, BarHeight);
-            var cursorPos = new Vector2(CenterX - XOffset, CenterY + YOffset - 22);
+            var cursorPos = new Vector2(CenterX - XOffset, CenterY + YOffset);
             var drawList = ImGui.GetWindowDrawList();
             drawList.AddRectFilled(cursorPos, cursorPos + barSize, 0x88000000);
             drawList.AddRectFilledMultiColor(
@@ -93,7 +93,7 @@ namespace DelvUIPlugin.Interface {
         
         private void DrawAccelBar() {
             var barSize = new Vector2(BarWidth/3-1, BarHeight/2);
-            var cursorPos = new Vector2(CenterX - XOffset, CenterY + YOffset - 55);
+            var cursorPos = new Vector2(CenterX - XOffset, CenterY + YOffset - 33);
             var drawList = ImGui.GetWindowDrawList();
             var accelBuff = PluginInterface.ClientState.LocalPlayer.StatusEffects.Where(o => o.EffectId == 1238);
             drawList.AddRectFilled(cursorPos, cursorPos + new Vector2(barSize.X , barSize.Y), 0x88000000);
@@ -106,7 +106,7 @@ namespace DelvUIPlugin.Interface {
             drawList.AddRectFilled(cursorPos, cursorPos + new Vector2(barSize.X , barSize.Y), 0x88000000);
             drawList.AddRect(cursorPos, cursorPos + new Vector2(barSize.X , barSize.Y), 0xFF000000);
             if (accelBuff.Count() != 1) return;
-            cursorPos = new Vector2(CenterX - 127, CenterY + YOffset - 55);
+            cursorPos = new Vector2(CenterX - 127, CenterY + YOffset - 33);
             switch (accelBuff.First().StackCount)
             {
                 case 1:
@@ -158,17 +158,17 @@ namespace DelvUIPlugin.Interface {
             var drawList = ImGui.GetWindowDrawList();
             var dualCastBuff = PluginInterface.ClientState.LocalPlayer.StatusEffects.Where(o => o.EffectId == 1249);
 
-            drawList.AddRectFilled(new Vector2(cursorPos.X-2,cursorPos.Y + barSize.Y-53), 
+            drawList.AddRectFilled(new Vector2(cursorPos.X-2,cursorPos.Y + barSize.Y-31), 
                 new Vector2(cursorPos.X-8,cursorPos.Y + barSize.Y*2+2), 0x88000000);
             if (dualCastBuff.Count() == 1)
             {
                 drawList.AddRectFilledMultiColor(
-                    new Vector2(cursorPos.X-2,cursorPos.Y + barSize.Y-53), 
+                    new Vector2(cursorPos.X-2,cursorPos.Y + barSize.Y-31), 
                     new Vector2(cursorPos.X-8,cursorPos.Y + barSize.Y*2+2), 
                     0xFFF473AE, 0xFFF473AE, 0xFFF473AE, 0xFFF473AE
                 );
             }
-            drawList.AddRect(new Vector2(cursorPos.X-2,cursorPos.Y + barSize.Y-53), 
+            drawList.AddRect(new Vector2(cursorPos.X-2,cursorPos.Y + barSize.Y-31), 
                              new Vector2(cursorPos.X-8,cursorPos.Y + barSize.Y*2+2), 0xFF000000);
                 
                 
@@ -181,26 +181,26 @@ namespace DelvUIPlugin.Interface {
             var barSize = new Vector2(BarWidth, BarHeight);
             var cursorPos = new Vector2(CenterX - XOffset, CenterY + YOffset - 22);
             var drawList = ImGui.GetWindowDrawList();
-            drawList.AddRectFilled(new Vector2(cursorPos.X + barSize.X+2,cursorPos.Y + barSize.Y-53), 
+            drawList.AddRectFilled(new Vector2(cursorPos.X + barSize.X+2,cursorPos.Y + barSize.Y-31), 
                 new Vector2(cursorPos.X + barSize.X+10,cursorPos.Y + barSize.Y*2+2), 0x88000000);
             if (gaugeDiff >= 30)
             {
                 drawList.AddRectFilledMultiColor(
-                    new Vector2(cursorPos.X + barSize.X+2,cursorPos.Y + barSize.Y-53), 
+                    new Vector2(cursorPos.X + barSize.X+2,cursorPos.Y + barSize.Y-31), 
                     new Vector2(cursorPos.X + barSize.X+10,cursorPos.Y + barSize.Y*2+2), 
                     0xFFEEECF6, 0xFFEEECF6, 0xFFEEECF6, 0xFFEEECF6
                 ); 
             }else if (gaugeDiff <= -30)
             {
                 drawList.AddRectFilledMultiColor(
-                    new Vector2(cursorPos.X + barSize.X+2,cursorPos.Y + barSize.Y-53), 
+                    new Vector2(cursorPos.X + barSize.X+2,cursorPos.Y + barSize.Y-31), 
                     new Vector2(cursorPos.X + barSize.X+10,cursorPos.Y + barSize.Y*2+2), 
                     0xFFCE503C, 0xFFCE503C, 0xFFCE503C, 0xFFCE503C
                 ); 
             }else if (whiteGauge >= 80 && blackGauge >= 80)
             {                
                 drawList.AddRectFilledMultiColor(
-                    new Vector2(cursorPos.X + barSize.X+2,cursorPos.Y + barSize.Y-53), 
+                    new Vector2(cursorPos.X + barSize.X+2,cursorPos.Y + barSize.Y-31), 
                     new Vector2(cursorPos.X + barSize.X+10,cursorPos.Y + barSize.Y*2+2), 
                     0xFF2e2ec7, 0xFF2e2ec7, 0xFF2e2ec7, 0xFF2e2ec7
                 ); 
@@ -208,7 +208,7 @@ namespace DelvUIPlugin.Interface {
             }
 
             
-            drawList.AddRect(new Vector2(cursorPos.X + barSize.X+2,cursorPos.Y + barSize.Y-53), 
+            drawList.AddRect(new Vector2(cursorPos.X + barSize.X+2,cursorPos.Y + barSize.Y-31), 
                 new Vector2(cursorPos.X + barSize.X+10,cursorPos.Y + barSize.Y*2+2), 0xFF000000);
         }
     }

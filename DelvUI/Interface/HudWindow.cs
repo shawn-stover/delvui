@@ -243,7 +243,7 @@ namespace DelvUI.Interface {
             );
 
             DrawTargetShield(target, cursorPos, BarSize, true);
-            DrawTargetOfTargetBar(target.TargetObjectId);
+            DrawTargetOfTargetBar(target.TargetObject);
         }
 
         protected virtual void DrawFocusBar() {
@@ -290,27 +290,14 @@ namespace DelvUI.Interface {
             );
         }
         
-        protected virtual void DrawTargetOfTargetBar(uint targetActorId) {
-            GameObject target = null;
-            
-            if (targetActorId == 0) {
-                target = ClientState.LocalPlayer;
-            }
-            else {
-                for (var i = 0; i < 200; i += 2) {
-                    if (ObjectTable[i]?.ObjectId == targetActorId) {
-                        target = ObjectTable[i];
-                    }
-                }
-            }
-
-            if (target is not Character actor) {
+        protected virtual void DrawTargetOfTargetBar(GameObject targetObject) {
+            if (targetObject is not Character actor) {
                 return;
             }
 
             var barSize = new Vector2(ToTBarWidth, ToTBarHeight);
             var colors = DetermineTargetPlateColors(actor);
-            var text = Helpers.TextTags.GenerateFormattedTextFromTags(target, PluginConfiguration.ToTBarText);
+            var text = Helpers.TextTags.GenerateFormattedTextFromTags(targetObject, PluginConfiguration.ToTBarText);
             var textSize = ImGui.CalcTextSize(text);
             var cursorPos = new Vector2(CenterX + ToTBarXOffset + TargetBarWidth + 2, CenterY + ToTBarYOffset);
 
@@ -338,14 +325,14 @@ namespace DelvUI.Interface {
                 drawList.AddRect(cursorPos, cursorPos + barSize, 0xFF000000);
 
                 if (ImGui.GetIO().MouseClicked[0] && ImGui.IsMouseHoveringRect(cursorPos, cursorPos + barSize)) {
-                    TargetManager.SetTarget(target);
+                    TargetManager.SetTarget(targetObject);
                 }
             }
             
             ImGui.EndChild();
             ImGui.End();
 
-            DrawTargetShield(target, cursorPos, barSize, true);
+            DrawTargetShield(targetObject, cursorPos, barSize, true);
 
             DrawOutlinedText(text,
                 new Vector2(

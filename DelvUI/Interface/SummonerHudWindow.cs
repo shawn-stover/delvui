@@ -84,8 +84,8 @@ namespace DelvUI.Interface
             var miasma = actor.StatusList.FirstOrDefault(o => o.StatusId is 1215 or 180);
             var bio = actor.StatusList.FirstOrDefault(o => o.StatusId is 1214 or 179 or 189);
 
-            var miasmaDuration = miasma?.RemainingTime ?? 0f;
-            var bioDuration = bio?.RemainingTime ?? 0f;
+            var miasmaDuration = miasma == null ? 0f : miasma.RemainingTime;
+            var bioDuration = bio == null ? 0f : bio.RemainingTime;
 
             var miasmaColor = miasmaDuration > 5 ? SmnMiasmaColor["base"] : SmnExpiryColor["base"];
             var bioColor = bioDuration > 5 ? SmnBioColor["base"] : SmnExpiryColor["base"];
@@ -125,7 +125,7 @@ namespace DelvUI.Interface
             drawList.AddRect(cursorPos, cursorPos + barSize, 0xFF000000);
             cursorPos = new Vector2(CenterX - 127, CenterY + SmnAetherBarY - 22);
 
-            var stackCount = aetherFlowBuff?.StackCount ?? 0;
+            var stackCount = aetherFlowBuff == null ? 0 : aetherFlowBuff.StackCount;
             switch (stackCount)
             {
                 case 1:
@@ -148,7 +148,7 @@ namespace DelvUI.Interface
         {
             Debug.Assert(ClientState.LocalPlayer != null, "ClientState.LocalPlayer != null");
             var ruinBuff = ClientState.LocalPlayer.StatusList.FirstOrDefault(o => o.StatusId == 1212);
-            var ruinStacks = ruinBuff?.StackCount ?? 0;
+            var ruinStacks = ruinBuff == null ? 0 : ruinBuff.StackCount;
 
             const int xPadding = 2;
             var barWidth = (SmnRuinBarWidth - xPadding * 3) / 4;

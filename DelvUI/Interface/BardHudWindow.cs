@@ -65,9 +65,9 @@ namespace DelvUI.Interface {
             var barWidth = (BarWidth / 2) - 1;
             var cb = actor.StatusList.FirstOrDefault(o => o.StatusId is 1200 or 124);
             var sb = actor.StatusList.FirstOrDefault(o => o.StatusId is 1201 or 129);
-            
-            var cbDuration = cb?.RemainingTime ?? 0f;
-            var sbDuration = sb?.RemainingTime ?? 0f;
+
+            var cbDuration = cb == null ? 0f : cb.RemainingTime;
+            var sbDuration = sb == null ? 0f : sb.RemainingTime;
 
             var cbColor = cbDuration > 5 ? 0xFFEB44B6 : expiryColor;
             var sbColor = sbDuration > 5 ? 0xFFCA7548 : expiryColor;

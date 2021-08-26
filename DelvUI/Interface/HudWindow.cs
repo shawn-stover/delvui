@@ -536,8 +536,7 @@ namespace DelvUI.Interface {
             // Still need to figure out the "orange" state; aggroed but not yet attacked.
             switch (actor.ObjectKind) {
                 case ObjectKind.Player:
-                    PluginConfiguration.JobColorMap.TryGetValue(actor.ClassJob.Id, out colors);
-                    colors ??= PluginConfiguration.NPCColorMap["neutral"];
+                    colors = PluginConfiguration.JobColorMap.GetValueOrDefault(actor.ClassJob.Id, PluginConfiguration.NPCColorMap["neutral"]);
                     break;
 
                 case ObjectKind.BattleNpc when (actor.StatusFlags & StatusFlags.InCombat) == StatusFlags.InCombat:

@@ -131,6 +131,7 @@ namespace DelvUI {
 
                 //Healers
                 Jobs.WHM => new WhiteMageHudWindow(_clientState, _pluginInterface, _dataManager, _gameGui, _jobGauges, _objectTable, _pluginConfiguration, _targetManager),
+                Jobs.SCH => new ScholarHudWindow(_clientState, _pluginInterface, _dataManager, _gameGui, _jobGauges, _objectTable, _pluginConfiguration, _targetManager),
                 
                 //Melee DPS
                 Jobs.SAM => new SamuraiHudWindow(_clientState, _pluginInterface, _dataManager, _gameGui, _jobGauges, _objectTable, _pluginConfiguration, _targetManager),
@@ -139,6 +140,7 @@ namespace DelvUI {
                 //Ranged DPS
                 Jobs.BRD => new BardHudWindow(_clientState, _pluginInterface, _dataManager, _gameGui, _jobGauges, _objectTable, _pluginConfiguration, _targetManager),
                 Jobs.DNC => new DancerHudWindow(_clientState, _pluginInterface, _dataManager, _gameGui, _jobGauges, _objectTable, _pluginConfiguration, _targetManager),
+                Jobs.MCH => new MachinistHudWindow(_clientState, _pluginInterface, _dataManager, _gameGui, _jobGauges, _objectTable, _pluginConfiguration, _targetManager),
                 
                 //Caster DPS
                 Jobs.RDM => new RedMageHudWindow(_clientState, _pluginInterface, _dataManager, _gameGui, _jobGauges, _objectTable, _pluginConfiguration, _targetManager),

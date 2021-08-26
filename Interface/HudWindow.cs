@@ -273,7 +273,7 @@ namespace DelvUIPlugin.Interface {
                 .ToString(CultureInfo.InvariantCulture);
 
             var barSize = new Vector2(CastBarWidth, CastBarHeight);
-            var cursorPos = new Vector2(CenterX - CastBarWidth / 2f, CenterY + YOffset - 100);
+            var cursorPos = new Vector2(CenterX - CastBarWidth / 2f, CenterY + YOffset + 55);
 
             ImGui.SetCursorPos(cursorPos);
 
